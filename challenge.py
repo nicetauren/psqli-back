@@ -13,6 +13,7 @@ challenge_fields = Challenge.model('Challenge',{
     'score': fields.Integer(),
     'answer': fields.String(),
     'mid': fields.Integer(),
+    'uid': fields.Integer(),
 })
 
 @Challenge.route('/add')
@@ -106,13 +107,18 @@ class AnswerCheck(Resource):
         score = request.json['score']
         answer = request.json['answer']
         mid = request.json['mid']
+        uid = request.json['uid']
 
-        sql = "SELECT answer FROM challenges WHERE title='%s' and mid='%d'"%(title, mid)
+        sql = "SELECT id, answer FROM challenges WHERE title='%s' and mid='%d'"%(title, mid)
         conn = DB()
 
         real_answer = conn.select_one(sql)
 
-        if answer != real_answer:
+        if answer != real_answer['answer']:
+            sql = "INSERT INTO solves (uid, cid, correctness) VALUES (%d, %d)"%(uid, answer['cid'], FALSE)
+            conn.insert(sql)
             return 401
         else:
+            sql = "INSERT INTO solves (uid, cid, correctness) VALUES (%d, %d)"%(uid, answer['cid'], TRUE)
+            conn.insert(sql)
             return 200
