@@ -14,6 +14,8 @@ Auth = Namespace(
 user_fields = Auth.model('User', {  # Model 객체 생성
     'name': fields.String(description='a User Name', required=True, example="jaeyeol"),
     'nickname': fields.String(description='a Nickname', required=True, example="nicetauren")
+    'isAdmin': fields.Boolean(description='a role is admin' required=True, default=False),
+    'isMaker': fields.Boolean(description='a role is maker' required=True, default=False),
 })
 
 user_fields_auth = Auth.inherit('User Auth', user_fields, {
@@ -35,8 +37,17 @@ class AuthRegister(Resource):
         password = request.json['password']
         nickname = request.json['nickname']
         loginID = request.json['loginID']
+        isAdmin = request.json['isAdmin']
+        isMaker = request.json['isMaker']
 
-        sql = 'SELECT loginid FROM users'
+        sql = 'SELECT loginid FROM '
+        if isAdmin:
+            sql += 'admin'
+        elif isMaker:
+            sql += 'maker'
+        else:
+            sql += 'users'
+        
         conn = DB()
         id_list = conn.select_all(sql)
 
@@ -46,7 +57,13 @@ class AuthRegister(Resource):
             }, 500
         else:
             password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())  # 비밀번호 저장
-            sql = 'INSERT INTO users (name, nickname, loginid, password) VALUES (%s, %s, %s, %s)'%(name, nickname, loginid, password)
+            if isAdmin:
+                sql = 'INSERT INTO admin (name, nickname, loginid, password) VALUES (%s, %s, %s, %s)'%(name, nickname, loginid, password)
+            elif isMaker:
+                sql = 'INSERT INTO maker (name, nickname, loginid, password) VALUES (%s, %s, %s, %s)'%(name, nickname, loginid, password)
+            else:
+                sql = 'INSERT INTO users (name, nickname, loginid, password) VALUES (%s, %s, %s, %s)'%(name, nickname, loginid, password)
+
             conn.insert(sql)
             return {
                 'Authorization': jwt.encode({'name': name}, "secret", algorithm="HS256")  # str으로 반환하여 return
@@ -62,8 +79,16 @@ class AuthLogin(Resource):
         loginID = request.json['login_id']
         password = request.json['password']
         password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+        isAdmin = request.json['isAdmin']
+        isMaker = request.json['isMaker']
 
-        sql = 'SELECT * FROM users WHERE login_id = %s and password = %s'%(loginID, password)
+        if isAdmin:
+            sql = 'SELECT * FROM admin WHERE login_id = %s and password = %s'%(loginID, password)
+        elif isMaker:
+            sql = 'SELECT * FROM maker WHERE login_id = %s and password = %s'%(loginID, password)
+        else:
+            sql = 'SELECT * FROM users WHERE login_id = %s and password = %s'%(loginID, password)
+
         conn = DB()
         result = conn.select_all(sql) #what result?? if not found user or password incorrect
 
