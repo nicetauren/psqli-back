@@ -4,8 +4,6 @@ from flask import request
 from flask_restx import Resource, Api, Namespace, fields
 from db import DB
 
-users = {}
-
 Auth = Namespace(
     name="Auth",
     description="사용자 인증을 위한 API",
@@ -65,8 +63,17 @@ class AuthRegister(Resource):
                 sql = 'INSERT INTO users (name, nickname, loginid, password) VALUES (%s, %s, %s, %s)'%(name, nickname, loginid, password)
 
             conn.insert(sql)
+
+            if isAdmin:
+                sql = 'SELECT id FROM admin WHERE loginid = %s'%loginID
+            elif isMaker:
+                sql = 'SELECT id FROM maker WHERE loginid = %s'%loginID
+            else:
+                sql = 'SELECT id FROM users WHERE loginid = %s'%loginID
+            
+            user_id = conn.select_one(sql)
             return {
-                'Authorization': jwt.encode({'name': name}, "secret", algorithm="HS256")  # str으로 반환하여 return
+                'Authorization': jwt.encode({'userID': user_id, 'name': name, 'nickname': nickname, 'isAdmin': isAdmin, 'isMaker': isMaker}, "secret", algorithm="HS256")  # str으로 반환하여 return
             }, 200
 
 @Auth.route('/login')
@@ -97,8 +104,9 @@ class AuthLogin(Resource):
                 "message": "User Not Found"
             }, 404
         else:
+            user_id = result["id"]
             return {
-                'Authorization': jwt.encode({'name': name}, "secret", algorithm="HS256") # str으로 반환하여 return
+                'Authorization': jwt.encode({'userID': user_id, 'name': name, 'nickname': nickname, 'isAdmin': isAdmin, 'isMaker': isMaker}, "secret", algorithm="HS256") # str으로 반환하여 return
             }, 200
 
 @Auth.route('/get')
