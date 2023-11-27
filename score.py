@@ -7,7 +7,7 @@ Score = Namespace(
     description='점수 조회, 정답 체크를 위한 API',
 )
 
-challenge_fields = Challenge.model('Challenge',{
+challenge_fields = Score.model('Challenge',{
     'title': fields.String(),
     'subscriptioin': fields.String(),
     'score': fields.Integer(),
@@ -16,8 +16,8 @@ challenge_fields = Challenge.model('Challenge',{
 })
 @Score.route('/all')
 class GetAllScore(Resource):
-    @Challenge.doc(responses={200: 'Success'})
-    @Challenge.doc(responses={500: 'Get All Score Failed'})
+    @Score.doc(responses={200: 'Success'})
+    @Score.doc(responses={500: 'Get All Score Failed'})
     def get(self):
         sql = "SELECT id, nickname, score FROM users"
         conn = DB()
@@ -27,8 +27,8 @@ class GetAllScore(Resource):
     
 @Score.route('/<int:user_id>')
 class GetUserScore(Resource):
-    @Challenge.doc(responses={200: 'Success'})
-    @Challenge.doc(responses={500: 'Get User Score Failed'})
+    @Score.doc(responses={200: 'Success'})
+    @Score.doc(responses={500: 'Get User Score Failed'})
     def get(self, user_id):
         sql = "SELECT id, nickname, score FROM id=%d"%user_id
         conn = DB()
@@ -36,12 +36,12 @@ class GetUserScore(Resource):
         user_score = conn.select_one(sql)
         return user_score, 200
     
-@Challenge.route('/check_answer')
+@Score.route('/check_answer')
 class AnswerCheck(Resource):
-    @Challenge.expect(challenge_fields)
-    @Challenge.doc(responses={200: 'Success'})
-    @Challenge.doc(responses={401: 'Incorrect Answer'})
-    @Challenge.doc(responses={500: 'Answer Check Failed'})
+    @Score.expect(challenge_fields)
+    @Score.doc(responses={200: 'Success'})
+    @Score.doc(responses={401: 'Incorrect Answer'})
+    @Score.doc(responses={500: 'Answer Check Failed'})
     def post(self):
         title = request.json['title']
         subscription = request.json['subscription']
