@@ -4,6 +4,8 @@ from flask import request
 from flask_restx import Resource, Api, Namespace, fields
 from db import DB
 
+salt = bcrypt.gensalt()
+
 Auth = Namespace(
     name="Auth",
     description="사용자 인증을 위한 API",
@@ -47,37 +49,39 @@ class AuthRegister(Resource):
 
         sql = 'SELECT loginid FROM '
         if isAdmin:
-            sql += 'admin'
+            sql += 'admin;'
         elif isMaker:
-            sql += 'maker'
+            sql += 'maker;'
         else:
-            sql += 'users'
+            sql += 'users;'
         
         conn = DB()
         id_list = conn.select_all(sql)
+        id_list = [login[0] for login in id_list]
+        print(id_list)
 
         if loginid in id_list:
             return {
                 "message": "Register Failed, login ID is already in use"
             }, 500
         else:
-            password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode('utf-8')  # 비밀번호 저장
+            password = bcrypt.hashpw(password.encode("utf-8"), salt).decode('utf-8')  # 비밀번호 저장
             if isAdmin:
-                sql = "INSERT INTO admin (name, nickname, loginid, password) VALUES ('%s', '%s', '%s', '%s')"%(name, nickname, loginid, password)
+                sql = "INSERT INTO admin (name, nickname, loginid, password) VALUES ('%s', '%s', '%s', '%s');"%(name, nickname, loginid, password)
             elif isMaker:
-                sql = "INSERT INTO maker (name, nickname, loginid, password) VALUES ('%s', '%s', '%s', '%s')"%(name, nickname, loginid, password)
+                sql = "INSERT INTO maker (name, nickname, loginid, password) VALUES ('%s', '%s', '%s', '%s');"%(name, nickname, loginid, password)
             else:
-                sql = "INSERT INTO users (name, nickname, loginid, password) VALUES ('%s', '%s', '%s', '%s')"%(name, nickname, loginid, password)
+                sql = "INSERT INTO users (name, nickname, loginid, password, score) VALUES ('%s', '%s', '%s', '%s', 0);"%(name, nickname, loginid, password)
             
             
             conn.insert(sql)
 
             if isAdmin:
-                sql = "SELECT id FROM admin WHERE loginid = '%s'"%loginid
+                sql = "SELECT id FROM admin WHERE loginid = '%s';"%loginid
             elif isMaker:
-                sql = "SELECT id FROM maker WHERE loginid = '%s'"%loginid
+                sql = "SELECT id FROM maker WHERE loginid = '%s';"%loginid
             else:
-                sql = "SELECT id FROM users WHERE loginid = '%s'"%loginid
+                sql = "SELECT id FROM users WHERE loginid = '%s';"%loginid
             
             
             user_id = conn.select_one(sql)
@@ -86,7 +90,7 @@ class AuthRegister(Resource):
             conn.conn.close()
 
             return {
-                'Authorization': jwt.encode({'userID': user_id, 'name': name, 'nickname': nickname, 'isAdmin': isAdmin, 'isMaker': isMaker}, "secret", algorithm="HS256")  # str으로 반환하여 return
+                'Authorization': jwt.encode({'userID': user_id[0], 'name': name, 'nickname': nickname, 'isAdmin': isAdmin, 'isMaker': isMaker}, "secret", algorithm="HS256")  # str으로 반환하여 return
             }, 200
 
 @Auth.route('/login')
@@ -98,32 +102,32 @@ class AuthLogin(Resource):
     def post(self):
         loginID = request.json['loginID']
         password = request.json['password']
-        password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode('utf-8')
+        password = bcrypt.hashpw(password.encode("utf-8"), salt).decode('utf-8')
         isAdmin = request.json['isAdmin']
         isMaker = request.json['isMaker']
 
         if isAdmin:
-            sql = "SELECT * FROM admin WHERE loginid='%s' and password ='%s'"%(loginID, password)
+            sql = "SELECT * FROM admin WHERE loginid='%s' and password ='%s';"%(loginID, password)
         elif isMaker:
-            sql = "SELECT * FROM maker WHERE loginid='%s' and password='%s'"%(loginID, password)
+            sql = "SELECT * FROM maker WHERE loginid='%s' and password='%s';"%(loginID, password)
         else:
-            sql = "SELECT * FROM users WHERE loginid='%s' and password ='%s'"%(loginID, password)
+            sql = "SELECT * FROM users WHERE loginid='%s' and password ='%s';"%(loginID, password)
 
         conn = DB()
         result = conn.select_all(sql) #what result?? if not found user or password incorrect
 
-        return result, 200
-    '''
-        if result is None:
+        if len(result) == 0:
             return {
                 "message": "User Not Found"
             }, 404
         else:
-            user_id = result["id"]
+            user_id = result[0][0]
+            name = result[0][1]
+            nickname = result[0][2]
             return {
-                'Authorization': jwt.encode({'userID': user_id, 'name': name, 'nickname': nickname, 'isAdmin': isAdmin, 'isMaker': isMaker}, "secret", algorithm="HS256") # str으로 반환하여 return
+               'Authorization': jwt.encode({'userID': user_id, 'name': name, 'nickname': nickname, 'isAdmin': isAdmin, 'isMaker': isMaker}, "secret", algorithm="HS256") # str으로 반환하여 return
             }, 200
-'''
+
 @Auth.route('/get')
 class AuthGet(Resource):
     @Auth.doc(responses={200: 'Success'})

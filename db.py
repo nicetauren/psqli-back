@@ -12,40 +12,85 @@ class DB:
         self.cursor = self.conn.cursor()
 
     def select_n(self, sql, nums):
-        self.cursor.execute(sql)
-        result = self.cursor.fetchmany(nums)
-        return result
+        print('Executing SQL:', sql)
+        try:
+            self.cursor.execute(sql)
+            result = self.cursor.fetchmany(nums)
+            return result
+        except Exception as e:
+            print('commit failed:', e)
+            self.conn.rollback()
     
     def select_one(self, sql):
-        self.cursor.execute(sql)
-        result = self.cursor.fetchone()
-        return result
+        print('Executing SQL:', sql)
+        try:
+            self.cursor.execute(sql)
+            result = self.cursor.fetchone()
+            return result
+        except Exception as e:
+            print('commit failed:', e)
+            self.conn.rollback()
 
     def select_all(self, sql):
-        self.cursor.execute(sql)
-        result = self.cursor.fetchall()
-        return result
+        print('Executing SQL:', sql)
+        try:
+            self.cursor.execute(sql)
+            result = self.cursor.fetchall()
+            return result
+        except Exception as e:
+            print('commit failed:', e)
+            self.conn.rollback()
 
     def insert(self, sql):
-        self.cursor.execute(sql)
-        self.conn.commit()
+        print('Executing SQL:', sql)
+        try:
+            self.cursor.execute(sql)
+            self.conn.commit()
+        except Exception as e:
+            print('commit failed:', e)
+            self.conn.rollback()
 
     def insert_many(self, sql, vals):
-        self.cursor.executemany(sql, vals)
-        self.conn.commit()
+        print('Executing SQL:', sql)
+        try:
+            self.cursor.executemany(sql, vals)
+            self.conn.commit()
+        except Exception as e:
+            print('commit failed:', e)
+            self.conn.rollback()
 
     def update(self, sql):
-        self.cur.execute(sql)
-        self.conn.commit()
+        print('Executing SQL:', sql)
+        try:
+            self.cursor.execute(sql)
+            self.conn.commit()
+        except Exception as e:
+            print('commit failed:', e)
+            self.conn.rollback()
 
     def update_many(self, sql, vals):
-        self.cur.executemany(sql, vals)
-        self.conn.commit()
+        print('Executing SQL:', sql)
+        try:
+            self.cursor.executemany(sql, vals)
+            self.conn.commit()
+        except Exception as e:
+            print('commit failed:', e)
+            self.conn.rollback()
 
     def delete(self, sql):
-        self.cursor.execute(sql)
-        self.conn.commit()
+        print('Executing SQL:', sql)
+        try:
+            self.cursor.execute(sql)
+            self.conn.commit()
+        except Exception as e:
+            print('commit failed:', e)
+            self.conn.rollback()
 
     def delete_many(self, sql, vals):
-        self.cursor.executemany(sql, vals)
-        self.conn.commit()
+        print('Executing SQL:', sql)
+        try:
+            self.cursor.executemany(sql, vals)
+            self.conn.commit()
+        except Exception as e:
+            print('commit failed:', e)
+            self.conn.rollback()

@@ -1,3 +1,4 @@
+import jwt
 from flask import request
 from flask_restx import Resource, Api, Namespace, fields
 from db import DB
@@ -27,36 +28,21 @@ class AddChallenge(Resource):
 
         header = request.headers.get('Authorization')
         data = jwt.decode(header, "secret", algorithms="HS256")
-        mid = data['user_id']
+        print(data)
+        mid = data['userID']
 
-        sql = "INSERT INTO challenges(title, subscription, score, answer, mid) VALUES (%s, %s, %d, %s, %d)"%(title, subscription, score, answer, mid)
+        sql = "INSERT INTO challenges(title, subscription, score, answer, mid) VALUES ('%s', '%s', %d, '%s', %d);"%(title, subscription, score, answer, mid)
         conn = DB()
 
         conn.insert(sql)
         return 200
-
-@Challenge.route('/modify')
-class ModifyChallenge(Resource):
-    @Challenge.expect(challenge_fields)
-    @Challenge.doc(responses={200: 'Success'})
-    @Challenge.doc(responses={500: 'Modify Failed'})
-    def post(self):
-        title = request.json['title']
-        subscription = request.json['subscription']
-        score = request.json['score']
-        answer = request.json['answer']
-        mid = request.json['mid']
-
-        sql = "UPDATE challenges SET title = '%s', subscription = '%s', score = '%d', answer = '%s', mid = '%d' WHERE title = "
-        conn = DB()
-
 
 @Challenge.route('/get')
 class GetAllChallenge(Resource):
     @Challenge.doc(responses={200: 'Success'})
     @Challenge.doc(responses={500: 'Get All Challenges Failed'})
     def get(self):
-        sql = "SELECT id, title, score FROM challenges"
+        sql = "SELECT id, title, score FROM challenges;"
         conn = DB()
 
         challenges = conn.select_all(sql)
@@ -67,7 +53,7 @@ class GetChallenge(Resource):
     @Challenge.doc(responses={200: 'Success'})
     @Challenge.doc(responses={500: 'Get Challenge Failed'})
     def get(self, chall_num):
-        sql = "SELECT * FROM challenges WHERE id = %d"%chall_num
+        sql = "SELECT * FROM challenges WHERE id = %d;"%chall_num
         conn = DB()
 
         challenge = conn.select_one(sql)
@@ -78,7 +64,7 @@ class DeleteChallenge(Resource):
     @Challenge.doc(responses={200: 'Success'})
     @Challenge.doc(responses={500: 'Delete Challenge Failed'})
     def get(self, chall_num):
-        sql = "DELETE FROM challenges WHERE id = %d"%chall_num
+        sql = "DELETE FROM challenges WHERE id = %d;"%chall_num
         conn = DB()
 
         conn.delete(sql)
@@ -89,9 +75,9 @@ class DeleteAllChallenge(Resource):
     @Challenge.doc(responses={200: 'Success'})
     @Challenge.doc(responses={500: 'Delete All Challenges Failed'})
     def get(self):
-        sql = "DELETE FROM challenges"
+        sql = "DELETE FROM challenges;"
         conn = DB()
 
-        conn.delete_many(sql)
+        conn.delete(sql)
 
         return 200
