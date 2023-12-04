@@ -44,7 +44,6 @@ class AnswerCheck(Resource):
     @Score.doc(responses={500: 'Answer Check Failed'})
     def post(self):
         title = request.json['title']
-        score = request.json['score']
         answer = request.json['answer']
         mid = request.json['mid']
 
@@ -52,16 +51,20 @@ class AnswerCheck(Resource):
         data = jwt.decode(header, "secret", algorithms="HS256")
         uid = data['userID']
 
-        sql = "SELECT id, answer FROM challenges WHERE title='%s' and mid='%d';"%(title, mid)
+        sql = "SELECT id, answer, score FROM challenges WHERE title='%s' and mid='%d';"%(title, mid)
         conn = DB()
 
         real_answer = conn.select_one(sql)
         print(real_answer[1])
 
+        print(real_answer[2])
+        print(answer)
+        score = real_answer[2]
+
         if answer != real_answer[1]:
             sql = "INSERT INTO solves (uid, cid, correctness) VALUES (%d, %d, %s);"%(uid, real_answer[0], False)
             conn.insert(sql)
-            return 401
+            return "WRONG", 401
         else:
             sql = "INSERT INTO solves (uid, cid, correctness) VALUES (%d, %d, %s);"%(uid, real_answer[0], True)
             conn.insert(sql)
@@ -72,4 +75,4 @@ class AnswerCheck(Resource):
             conn.update(sql)
 
 
-            return 200
+            return "CORRECT", 200

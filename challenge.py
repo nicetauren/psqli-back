@@ -42,7 +42,7 @@ class GetAllChallenge(Resource):
     @Challenge.doc(responses={200: 'Success'})
     @Challenge.doc(responses={500: 'Get All Challenges Failed'})
     def get(self):
-        sql = "SELECT id, title, score FROM challenges;"
+        sql = "SELECT id, title, score, mid FROM challenges;"
         conn = DB()
 
         challenges = conn.select_all(sql)
@@ -53,17 +53,18 @@ class GetChallenge(Resource):
     @Challenge.doc(responses={200: 'Success'})
     @Challenge.doc(responses={500: 'Get Challenge Failed'})
     def get(self, chall_num):
-        sql = "SELECT * FROM challenges WHERE id = %d;"%chall_num
+        sql = "SELECT challenges.id, challenges.title, challenges.subscription, challenges.score, maker.id, maker.nickname FROM challenges JOIN  maker ON challenges.mid = maker.id WHERE challenges.id = %d;"%chall_num
         conn = DB()
 
         challenge = conn.select_one(sql)
+
         return challenge, 200
 
 @Challenge.route('/delete/<int:chall_num>')
 class DeleteChallenge(Resource):
     @Challenge.doc(responses={200: 'Success'})
     @Challenge.doc(responses={500: 'Delete Challenge Failed'})
-    def get(self, chall_num):
+    def delete(self, chall_num):
         sql = "DELETE FROM challenges WHERE id = %d;"%chall_num
         conn = DB()
 
@@ -74,7 +75,7 @@ class DeleteChallenge(Resource):
 class DeleteAllChallenge(Resource):
     @Challenge.doc(responses={200: 'Success'})
     @Challenge.doc(responses={500: 'Delete All Challenges Failed'})
-    def get(self):
+    def delete(self):
         sql = "DELETE FROM challenges;"
         conn = DB()
 
