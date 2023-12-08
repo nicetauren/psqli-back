@@ -23,7 +23,7 @@ class AddChallenge(Resource):
     def post(self):
         title = request.json['title']
         subscription = request.json['subscription']
-        score = request.json['score']
+        score = int(request.json['score'])
         answer = request.json['answer']
 
         header = request.headers.get('Authorization')
@@ -35,6 +35,9 @@ class AddChallenge(Resource):
         conn = DB()
 
         conn.insert(sql)
+
+        conn.cursor.close()
+        conn.conn.close()
         return 200
 
 @Challenge.route('/get')
@@ -46,6 +49,9 @@ class GetAllChallenge(Resource):
         conn = DB()
 
         challenges = conn.select_all(sql)
+
+        conn.cursor.close()
+        conn.conn.close()
         return challenges, 200
 
 @Challenge.route('/get/<int:chall_num>')
@@ -58,6 +64,8 @@ class GetChallenge(Resource):
 
         challenge = conn.select_one(sql)
 
+        conn.cursor.close()
+        conn.conn.close()
         return challenge, 200
 
 @Challenge.route('/delete/<int:chall_num>')
@@ -65,10 +73,16 @@ class DeleteChallenge(Resource):
     @Challenge.doc(responses={200: 'Success'})
     @Challenge.doc(responses={500: 'Delete Challenge Failed'})
     def delete(self, chall_num):
-        sql = "DELETE FROM challenges WHERE id = %d;"%chall_num
         conn = DB()
 
+        sql = "DELETE FROM solves WHERE cid=%d;"%chall_num
         conn.delete(sql)
+        sql = "DELETE FROM challenges WHERE id = %d;"%chall_num
+
+        conn.delete(sql)
+
+        conn.cursor.close()
+        conn.conn.close()
         return 200
 
 @Challenge.route('/delete')
@@ -76,9 +90,14 @@ class DeleteAllChallenge(Resource):
     @Challenge.doc(responses={200: 'Success'})
     @Challenge.doc(responses={500: 'Delete All Challenges Failed'})
     def delete(self):
-        sql = "DELETE FROM challenges;"
         conn = DB()
+
+        sql = "DELETE FROM solves;"
+        conn.delete(sql)
+        sql = "DELETE FROM challenges;"
 
         conn.delete(sql)
 
+        conn.cursor.close()
+        conn.conn.close()
         return 200

@@ -30,6 +30,10 @@ user_fields_login = Auth.model('User Login', {
     'isMaker': fields.Boolean(description='a role is maker', required=True, dafault=False)
 })
 
+role_fields = Auth.model('User role', {
+    'role': fields.String(description='a role', required=True, default='user')
+})
+
 jwt_fields = Auth.model('JWT', {
     'Authorization': fields.String(description='Authorization which you must inclued in header', required=True, example="eyJ0e~~~~~~~~~")
 })
@@ -60,9 +64,25 @@ class AuthRegister(Resource):
         id_list = [login[0] for login in id_list]
         print(id_list)
 
+        sql = 'SELECT nickname FROM '
+        if isAdmin:
+            sql += 'admin;'
+        elif isMaker:
+            sql += 'maker;'
+        else:
+            sql += 'users;'
+
+        nickname_list = conn.select_all(sql)
+        nickname_list = [nickname[0] for nickname in nickname_list]
+        print(nickname_list)
+
         if loginid in id_list:
             return {
                 "message": "Register Failed, login ID is already in use"
+            }, 500
+        elif nickname in nickname_list:
+            return {
+                "message": "Register Failed, nickname is already in use"
             }, 500
         else:
             password = bcrypt.hashpw(password.encode("utf-8"), salt).decode('utf-8')  # 비밀번호 저장
@@ -116,6 +136,9 @@ class AuthLogin(Resource):
         conn = DB()
         result = conn.select_all(sql) #what result?? if not found user or password incorrect
 
+        conn.cursor.close()
+        conn.conn.close()
+
         if len(result) == 0:
             return {
                 "message": "User Not Found"
@@ -139,3 +162,59 @@ class AuthGet(Resource):
             return {"message": "Please Login"}, 404
         data = jwt.decode(header, "secret", algorithms="HS256")
         return data, 200
+
+@Auth.route('/delete/all')
+class DeleteUsers(Resource):
+    @Auth.expect(role_fields)
+    @Auth.doc(response={200: 'Success'})
+    @Auth.doc(response={500: 'Delete Failed'})
+    def get(self):
+        role = request.json['role']
+
+        if role == 'user':
+            sql = "DELETE FROM users;"
+        elif role == 'maker':
+            sql = "DELETE FROM maker;"
+        elif role == 'admin':
+            sql = "DELETE FROM admin;"
+
+        conn = DB()
+
+        conn.delete(sql)
+
+        conn.cursor.close()
+        conn.conn.close()
+
+        return 200
+
+@Auth.route('/delete')
+class DeleteUserById(Resource):
+    @Auth.expect(user_fields)
+    @Auth.doc(response={200: 'Success'})
+    @Auth.doc(response={500: 'Delete Failed'})
+    def get(self, user_id):
+        name = request.json['name']
+        nickname = request.json['nickname']
+        isAdmin = request.json['isAdmin']
+        isMaker = request.json['isMaker']
+
+        conn = DB()
+        if isAdmin:  
+            sql = "SELECT id FROM admin WHERE name='%s' and nickname='%s';"%(name, nickname)
+            user_id = conn.select_one(sql)
+            sql = "DELETE FROM admin WHERE id=%d;"%user_id
+        elif isMaker:
+            sql = "SELECT id FROM maker WHERE name='%s' and nickname='%s';"%(name, nickname)
+            user_id = conn.select_one(sql)
+            sql = "DELETE FROM maker WHERE id=%d;"%user_id
+        else:
+            sql = "SELCET id FROM users WHERE name='%s' and nickname='%s';"%(name, nickname)
+            user_id = conn.select_one(sql)
+            sql = "DELETE FROM users WHERE id=%d;"%user_id
+
+        conn.delete(sql)
+
+        conn.cursor.close()
+        conn.conn.close()
+
+        return 200

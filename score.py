@@ -19,10 +19,14 @@ class GetAllScore(Resource):
     @Score.doc(responses={200: 'Success'})
     @Score.doc(responses={500: 'Get All Score Failed'})
     def get(self):
-        sql = "SELECT id, nickname, score FROM users;"
+        sql = "SELECT id, nickname, score FROM users ORDER BY score desc;"
         conn = DB()
 
         all_scores = conn.select_all(sql)
+
+        conn.cursor.close()
+        conn.conn.close()
+
         return all_scores, 200
     
 @Score.route('/<int:user_id>')
@@ -30,17 +34,29 @@ class GetUserScore(Resource):
     @Score.doc(responses={200: 'Success'})
     @Score.doc(responses={500: 'Get User Score Failed'})
     def get(self, user_id):
-        sql = "SELECT id, nickname, score FROM users WHERE id=%d;"%user_id
+        sql = "SELECT DISTINCT name, nickname, users.score, challenges.id, title, challenges.score FROM solves JOIN users ON solves.uid=users.id JOIN challenges ON  solves.cid=challenges.id WHERE solves.correctness=True AND users.id=%d;"%user_id        
         conn = DB()
 
-        user_score = conn.select_one(sql)
-        return user_score, 200
+        user_score = conn.select_all(sql)
+        print(user_score)
+        if len(user_score) != 0:
+
+            conn.cursor.close()
+            conn.conn.close()
+            return user_score, 200
+        else:
+            sql = "SELECT name, nickname, score FROM users WHERE id=%d;"%user_id
+            conn = DB()
+            user_score = conn.select_all(sql)
+            print(user_score)
+            conn.cursor.close()
+            conn.conn.close()
+            return user_score, 200
     
 @Score.route('/check_answer')
 class AnswerCheck(Resource):
     @Score.expect(challenge_fields)
     @Score.doc(responses={200: 'Success'})
-    @Score.doc(responses={401: 'Incorrect Answer'})
     @Score.doc(responses={500: 'Answer Check Failed'})
     def post(self):
         title = request.json['title']
@@ -64,7 +80,11 @@ class AnswerCheck(Resource):
         if answer != real_answer[1]:
             sql = "INSERT INTO solves (uid, cid, correctness) VALUES (%d, %d, %s);"%(uid, real_answer[0], False)
             conn.insert(sql)
-            return "WRONG", 401
+
+            conn.cursor.close()
+            conn.conn.close()
+
+            return "WRONG", 200
         else:
             sql = "INSERT INTO solves (uid, cid, correctness) VALUES (%d, %d, %s);"%(uid, real_answer[0], True)
             conn.insert(sql)
@@ -74,5 +94,6 @@ class AnswerCheck(Resource):
             sql = "UPDATE users SET id=%d, name='%s', nickname='%s', loginid='%s', password='%s', score=%d WHERE id=%d;"%(uid, user_data[1], user_data[2], user_data[3], user_data[4], user_data[5]+score, uid)
             conn.update(sql)
 
-
+            conn.cursor.close()
+            conn.conn.close()
             return "CORRECT", 200
