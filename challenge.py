@@ -74,6 +74,19 @@ class DeleteChallenge(Resource):
     @Challenge.doc(responses={500: 'Delete Challenge Failed'})
     def delete(self, chall_num):
         conn = DB()
+	
+        sql = "SELECT uid FROM solves WHERE cid=%d;"%chall_num
+        users = conn.select_all(sql)
+        print(users)
+        sql = "SELECT score FROM challenges WHERE id=%d;"%chall_num
+        minus_score = conn.select_one(sql)[0]
+
+        for user in users:
+            sql = "SELECT score FROM users WHERE id=%d;"%user
+            score = conn.select_one(sql)[0] - minus_score
+            print(score)
+            sql = "UPDATE users SET score=%d WHERE id=%d;"%(score, user[0])
+            conn.update(sql)
 
         sql = "DELETE FROM solves WHERE cid=%d;"%chall_num
         conn.delete(sql)
